@@ -901,4 +901,4 @@ if __name__ == "__main__":
     app = create_app()
     debug = os.environ.get("FLASK_DEBUG", "True").lower() == "true"
     port = int(os.environ.get("FLASK_PORT", 5002))
-    app.run(debug=debug, port=port)
+    app.run(host="0.0.0.0",debug=debug, port=port)
