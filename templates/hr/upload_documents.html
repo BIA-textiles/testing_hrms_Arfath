@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+{% block title %}Upload Documents{% endblock %}
+
+{% block content %}
+<div class="card" style="padding: 30px; margin-bottom: 24px;">
+    <div class="card-header" style="margin-bottom: 24px;">
+        <h3 class="card-title">Upload Employee Documents</h3>
+    </div>
+    <form method="post" action="{{ url_for('hr_documents_upload_submit') }}" enctype="multipart/form-data">
+        <div class="info-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 16px;">
+            <div class="form-group">
+                <label>Select Employee *</label>
+                <select name="employee_id" id="employee_select" required onchange="updateStoragePath()">
+                    <option value="">Choose employee</option>
+                    {% for u in users %}
+                    <option value="{{ u.id }}">{{ u.name }} ({{ u.id }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Document Type *</label>
+                <select name="type" required>
+                    <option value="">Select type</option>
+                    <option value="ID Card">ID Card</option>
+                    <option value="Passport">Passport</option>
+                    <option value="Resume/CV">Resume/CV</option>
+                    <option value="Offer Letter">Offer Letter</option>
+                    <option value="Contract">Contract</option>
+                    <option value="Certificate">Certificate</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Document Name *</label>
+            <input type="text" name="name" placeholder="Enter document name" required>
+        </div>
+
+        <div class="form-group">
+            <label>Select File *</label>
+            <input type="file" name="file" style="padding: 10px; cursor: pointer;">
+        </div>
+
+        <div class="form-group">
+            <label>Document Status</label>
+            <select name="status">
+                <option value="Approved">Approved (Pre-approved by HR)</option>
+                <option value="Pending">Pending</option>
+            </select>
+        </div>
+
+        <div class="alert alert-success"
+            style="background-color: var(--success-bg, #d1fae5); color: var(--success-text, #065f46); margin-bottom: 24px; display: flex; align-items: center; padding: 12px 16px; border: 1px solid var(--success-border, transparent); border-radius: 8px;">
+            <span style="margin-right: 8px;">🔒</span>
+            <strong>Secure Storage:</strong>&nbsp;File will be saved to: <span
+                id="storage_path">/fileserver/employees/{employee_id}/documents/</span>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px;">Upload Document</button>
+    </form>
+</div>
+
+<div class="card" style="padding: 30px;">
+    <div class="card-header" style="margin-bottom: 24px;">
+        <h3 class="card-title">All Employee Documents</h3>
+    </div>
+
+    <div style="display: flex; gap: 16px; margin-bottom: 24px;">
+        <input type="text" id="filterSearch" onkeyup="filterDocs()" placeholder="Search by employee name or document..."
+            style="flex: 1; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-alt); color: var(--text);">
+
+        <select id="filterType" onchange="filterDocs()"
+            style="flex: 1; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-alt); color: var(--text);">
+            <option value="">All Document Types</option>
+            <option value="ID Card">ID Card</option>
+            <option value="Passport">Passport</option>
+            <option value="Resume/CV">Resume/CV</option>
+            <option value="Offer Letter">Offer Letter</option>
+            <option value="Contract">Contract</option>
+            <option value="Certificate">Certificate</option>
+        </select>
+
+        <select id="filterStatus" onchange="filterDocs()"
+            style="flex: 1; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-alt); color: var(--text);">
+            <option value="">All Statuses</option>
+            <option value="Approved">Approved</option>
+            <option value="Pending">Pending</option>
+            <option value="Rejected">Rejected</option>
+        </select>
+
+        <button class="btn btn-secondary" onclick="clearFilters()"
+            style="padding: 10px 24px; width: auto; border-color: var(--border);">Clear</button>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Employee</th>
+                    <th>Document Name</th>
+                    <th>Type</th>
+                    <th>Upload Date</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if not docs %}
+                <tr>
+                    <td colspan="6" style="text-align:center; padding: 40px; color:var(--text-secondary)">No documents
+                        found</td>
+                </tr>
+                {% else %}
+                {% for d in docs %}
+                <tr>
+                    <td>{{ d.employee_id }}</td>
+                    <td>{{ d.name }}</td>
+                    <td>{{ d.type }}</td>
+                    <td>{{ d.upload_date }}</td>
+                    <td><span
+                            class="badge {{ 'badge-approved' if d.status=='Approved' else 'badge-pending' if d.status in ['Pending','SupervisorApproved'] else 'badge-rejected' }}">{{
+                            d.status }}</span></td>
+                    <td style="white-space:nowrap">
+                        <button type="button" class="btn btn-secondary"
+                            onclick="openDocModal('{{ d.employee_id }}', '{{ d.name }}', '{{ d.type }}', '{{ d.file_name }}', '{{ d.upload_date }}', '{{ d.status }}', '{{ d.file_server_path }}')"
+                            style="padding: 4px 12px; font-size: 12px; width: auto; border-color: var(--border);">View</button>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Document Viewer Modal -->
+<div id="docViewerModal" class="modal">
+    <div class="modal-content"
+        style="max-width: 500px; padding: 32px; border-radius: 12px; background-color: var(--surface-modal); border: 1px solid var(--border); box-shadow: var(--shadow);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h3 style="margin: 0; font-size: 20px; color: var(--text);">Document Viewer</h3>
+            <button class="close-btn" onclick="closeDocModal()"
+                style="background: none; border: none; font-size: 24px; color: var(--text-secondary); cursor: pointer; padding: 0; line-height: 1;">&times;</button>
+        </div>
+
+        <div style="padding: 10px 0;">
+            <h4 style="color: var(--primary); margin-top: 0; margin-bottom: 16px; font-size: 16px;">Document Details
+            </h4>
+
+            <div style="display: grid; gap: 12px; font-size: 14px; margin-bottom: 24px;">
+                <div><strong style="color: var(--text);">Employee:</strong> <span id="m_emp"
+                        style="color: var(--text-secondary);"></span></div>
+                <div><strong style="color: var(--text);">Document Name:</strong> <span id="m_name"
+                        style="color: var(--text-secondary);"></span></div>
+                <div><strong style="color: var(--text);">Document Type:</strong> <span id="m_type"
+                        style="color: var(--text-secondary);"></span></div>
+                <div><strong style="color: var(--text);">File Name:</strong> <span id="m_fname"
+                        style="color: var(--text-secondary);"></span></div>
+                <div><strong style="color: var(--text);">Upload Date:</strong> <span id="m_date"
+                        style="color: var(--text-secondary);"></span></div>
+                <div>
+                    <strong style="color: var(--text);">Status:</strong>
+                    <span id="m_status_badge" class="badge"></span>
+                </div>
+                <div><strong style="color: var(--text);">Uploaded By:</strong> <span
+                        style="color: var(--text-secondary);">HR Admin</span></div>
+            </div>
+
+            <div
+                style="background-color: var(--surface-alt); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+                <div style="font-weight: 600; font-size: 14px; color: var(--text); margin-bottom: 8px;">📁 File
+                    Location:</div>
+                <div id="m_path"
+                    style="font-family: monospace; font-size: 13px; color: var(--text-secondary); word-break: break-all;">
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <a id="m_dl_link" href="#" download class="btn btn-secondary"
+                    style="display: flex; align-items: center; justify-content: center; text-decoration: none; padding: 10px; font-size: 14px; border-radius: 8px;">
+                    <span style="margin-right: 8px;">📥</span> Download
+                </a>
+                <button type="button" class="btn btn-secondary" onclick="closeDocModal()"
+                    style="padding: 10px; font-size: 14px; border-radius: 8px; cursor: pointer;">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function updateStoragePath() {
+        const select = document.getElementById('employee_select');
+        const pathSpan = document.getElementById('storage_path');
+        if (select.value) {
+            pathSpan.innerText = `/fileserver/employees/${select.value}/documents/`;
+        } else {
+            pathSpan.innerText = `/fileserver/employees/{employee_id}/documents/`;
+        }
+    }
+
+    function openDocModal(emp, name, type, fname, date, status, path) {
+        document.getElementById('m_emp').innerText = emp;
+        document.getElementById('m_name').innerText = name;
+        document.getElementById('m_type').innerText = type;
+        document.getElementById('m_fname').innerText = fname || 'N/A';
+        document.getElementById('m_date').innerText = date || 'N/A';
+
+        let badge = document.getElementById('m_status_badge');
+        badge.innerText = status;
+        badge.className = 'badge';
+        if (status === 'Approved') badge.classList.add('badge-approved');
+        else if (status === 'Rejected') badge.classList.add('badge-rejected');
+        else badge.classList.add('badge-pending');
+
+        document.getElementById('m_path').innerText = path;
+        document.getElementById('m_dl_link').href = path; // Mocks download
+
+        document.getElementById('docViewerModal').classList.add('active');
+    }
+
+    function closeDocModal() {
+        document.getElementById('docViewerModal').classList.remove('active');
+    }
+
+    function filterDocs() {
+        let search = document.getElementById('filterSearch').value.toLowerCase();
+        let type = document.getElementById('filterType').value.toLowerCase();
+        let status = document.getElementById('filterStatus').value.toLowerCase();
+
+        let rows = document.querySelectorAll('.table-container tbody tr');
+        rows.forEach(row => {
+            if (row.cells.length === 1) return; // Skip 'No documents found' row
+
+            let emp = row.cells[0].innerText.toLowerCase();
+            let docName = row.cells[1].innerText.toLowerCase();
+            let rowType = row.cells[2].innerText.toLowerCase();
+            let rowStatus = row.cells[4].innerText.toLowerCase();
+
+            // Allow searching by employee ID/Name OR the document's explicitly defined name
+            let matchSearch = search === "" || emp.includes(search) || docName.includes(search);
+            let matchType = type === "" || rowType === type;
+            let matchStatus = status === "" || rowStatus.includes(status);
+
+            if (matchSearch && matchType && matchStatus) {
+                row.style.display = "";
+            } else {
+                row.style.display = "none";
+            }
+        });
+    }
+
+    function clearFilters() {
+        document.getElementById('filterSearch').value = "";
+        document.getElementById('filterType').value = "";
+        document.getElementById('filterStatus').value = "";
+        filterDocs();
+    }
+</script>
+{% endblock %}

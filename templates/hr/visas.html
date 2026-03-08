@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block title %}Visa Management{% endblock %}
+
+{% block content %}
+<div class="card" style="padding: 30px;">
+  <div class="card-header"
+    style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center;">
+    <h3 class="card-title">Employee Visa Management</h3>
+    {% if session.get('role') in ['hr', 'itadmin'] %}
+    <button class="btn btn-primary" onclick="openVisaModal()"
+      style="width: auto; padding: 8px 16px; font-size: 13px;">Add New Visa</button>
+    {% endif %}
+  </div>
+
+  <div style="display: flex; gap: 16px; margin-bottom: 24px;">
+    <input type="text" id="visaSearchInput" placeholder="Search by employee name..." onkeyup="filterVisas()"
+      style="flex: 1; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--text);">
+
+    <select id="visaCountryFilter" onchange="filterVisas()"
+      style="flex: 1; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--text-secondary);">
+      <option value="">All Countries</option>
+      <!-- Ensure the javascript parses wildcard countries dynamically if needed -->
+      {% set countries = [] %}
+      {% for it in items %}
+      {% if it.country and it.country not in countries %}
+      {% set _ = countries.append(it.country) %}
+      {% endif %}
+      {% endfor %}
+      {% for c in countries %}
+      <option value="{{ c }}">{{ c }}</option>
+      {% endfor %}
+    </select>
+
+    <select id="visaStatusFilter" onchange="filterVisas()"
+      style="flex: 1; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--text-secondary);">
+      <option value="">All Statuses</option>
+      <option value="Active">Active</option>
+      <option value="Expired">Expired</option>
+      <option value="Pending">Pending</option>
+      <option value="Approved">Approved</option>
+    </select>
+
+    <button type="button" class="btn btn-secondary" onclick="clearVisaFilters()"
+      style="padding: 10px 24px; width: auto; background-color: transparent; border-color: var(--border);">Clear</button>
+  </div>
+
+  <div class="table-container">
+    <table id="visaTable">
+      <thead>
+        <tr>
+          <th>Employee</th>
+          <th>Visa Type</th>
+          <th>Country</th>
+          <th>Issue Date</th>
+          <th>Expiry Date</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if not items %}
+        <tr id="noRecordsRow">
+          <td colspan="7" style="text-align:center; padding: 20px; color:var(--text-secondary)">No records found</td>
+        </tr>
+        {% else %}
+        <tr id="noRecordsRow" style="display: none;">
+          <td colspan="7" style="text-align:center; padding: 20px; color:var(--text-secondary)">No records found</td>
+        </tr>
+        {% for it in items %}
+        {% set emp_name = users.get(it.employee_id,{}).get('name', it.employee_id) %}
+        <tr class="visa-row">
+          <td class="row-emp">{{ emp_name }}</td>
+          <td>
+            <form id="form-{{ it._id }}" method="post" action="{{ url_for('hr_visas_update', vid=it._id) }}"
+              style="display:none"></form>
+            <input form="form-{{ it._id }}" name="type" value="{{ it.type }}"
+              style="background:transparent; border:1px solid var(--border); color:var(--text); padding:4px; border-radius:4px; width:80px;">
+          </td>
+          <td class="row-country">
+            <input form="form-{{ it._id }}" name="country" value="{{ it.country }}"
+              style="background:transparent; border:1px solid var(--border); color:var(--text); padding:4px; border-radius:4px; width:80px;">
+          </td>
+          <td>
+            <input form="form-{{ it._id }}" name="issue_date" type="date" value="{{ it.issue_date }}"
+              style="background:transparent; border:1px solid var(--border); color:var(--text); padding:4px; border-radius:4px;">
+          </td>
+          <td>
+            <input form="form-{{ it._id }}" name="expiry_date" type="date" value="{{ it.expiry_date }}"
+              style="background:transparent; border:1px solid var(--border); color:var(--text); padding:4px; border-radius:4px;">
+          </td>
+          <td class="row-status">
+            <select form="form-{{ it._id }}" name="status"
+              style="background:transparent; border:1px solid var(--border); color:var(--text); padding:4px; border-radius:4px;">
+              <option value="Active" {% if it.status=='Active' %}selected{% endif %}>Active</option>
+              <option value="Expired" {% if it.status=='Expired' %}selected{% endif %}>Expired</option>
+              <option value="Pending" {% if it.status=='Pending' %}selected{% endif %}>Pending</option>
+              <option value="Approved" {% if it.status=='Approved' %}selected{% endif %}>Approved</option>
+            </select>
+          </td>
+          <td style="white-space:nowrap">
+            <button form="form-{{ it._id }}" type="submit" class="btn btn-secondary"
+              style="padding:4px 12px; font-size:12px; width:auto; background:transparent; border-color:var(--border); margin-right:8px;">Save</button>
+            <form method="post" action="{{ url_for('hr_visas_delete', vid=it._id) }}" style="display:inline-block">
+              <button class="btn"
+                style="padding:4px 12px; font-size:12px; width:auto; background:transparent; border:1px solid #da3633; color:#ff7b72;">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Add Visa Modal -->
+<div id="addVisaModal" class="modal">
+  <div class="modal-content" style="max-width: 600px;">
+    <div class="modal-header">
+      <h3 class="modal-title">Add New Visa</h3>
+      <button class="close-btn" onclick="closeVisaModal()">&times;</button>
+    </div>
+    {% if session.get('role') in ['hr', 'itadmin'] %}
+    <form method="post" action="{{ url_for('hr_visas_add') }}" class="info-grid"
+      style="grid-template-columns: 1fr 1fr; margin-bottom: 0;">
+      <div class="form-group"><label>Employee ID</label><input name="employee_id" required></div>
+      <div class="form-group"><label>Type</label><select name="type" required>
+          <option>Business</option>
+          <option>Work</option>
+          <option>Work Permit</option>
+          <option>Tourist</option>
+          <option>Residence</option>
+        </select></div>
+      <div class="form-group"><label>Country</label><input name="country" required></div>
+      <div class="form-group"><label>Visa Number</label><input name="visa_number"></div>
+      <div class="form-group"><label>Issue Date</label><input type="date" name="issue_date" required></div>
+      <div class="form-group"><label>Expiry Date</label><input type="date" name="expiry_date" required></div>
+
+      <div style="grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
+        <button type="button" class="btn-secondary" onclick="closeVisaModal()" style="width: auto;">Cancel</button>
+        <button class="btn btn-primary" type="submit" style="width: auto;">Add Visa</button>
+      </div>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  function openVisaModal() {
+    document.getElementById('addVisaModal').classList.add('active');
+  }
+  function closeVisaModal() {
+    document.getElementById('addVisaModal').classList.remove('active');
+  }
+
+  function filterVisas() {
+    const searchVal = document.getElementById('visaSearchInput').value.toLowerCase();
+    const countryVal = document.getElementById('visaCountryFilter').value.toLowerCase();
+    const statusVal = document.getElementById('visaStatusFilter').value.toLowerCase();
+
+    const rows = document.querySelectorAll('.visa-row');
+    let visibleCount = 0;
+
+    rows.forEach(row => {
+      const empName = row.querySelector('.row-emp').innerText.toLowerCase();
+
+      // Values are in input fields for country and select dropdown for status
+      const countryInput = row.querySelector('.row-country input');
+      const country = countryInput ? countryInput.value.toLowerCase() : "";
+
+      const statusSelect = row.querySelector('.row-status select');
+      const status = statusSelect ? statusSelect.value.toLowerCase() : "";
+
+      const matchSearch = empName.includes(searchVal);
+      const matchCountry = countryVal === "" || country === countryVal;
+      const matchStatus = statusVal === "" || status === statusVal;
+
+      if (matchSearch && matchCountry && matchStatus) {
+        row.style.display = '';
+        visibleCount++;
+      } else {
+        row.style.display = 'none';
+      }
+    });
+
+    // Handle "No records found" message row visibility if you have one
+    const noRecordsRow = document.getElementById('noRecordsRow');
+    if (noRecordsRow) {
+      noRecordsRow.style.display = visibleCount === 0 ? '' : 'none';
+    }
+  }
+
+  function clearVisaFilters() {
+    document.getElementById('visaSearchInput').value = '';
+    document.getElementById('visaCountryFilter').value = '';
+    document.getElementById('visaStatusFilter').value = '';
+    filterVisas();
+  }
+</script>
+{% endblock %}

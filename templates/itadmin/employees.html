@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+{% block title %}Employee Management{% endblock %}
+{% block content %}
+<div class="card" style="padding: 30px;">
+  <div class="card-header"
+    style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center;">
+    <h3 class="card-title">Employee Management</h3>
+    {% if session.get('role') in ['hr', 'itadmin'] %}
+    <button class="btn btn-primary" onclick="document.getElementById('createEmployeeModal').classList.add('active')"
+      style="width: auto; padding: 8px 16px;">Create New Employee</button>
+    {% endif %}
+  </div>
+
+  <div style="display: flex; gap: 16px; margin-bottom: 24px;">
+    <input type="text" id="searchName" placeholder="Search by name..." oninput="filterEmployees()"
+      style="padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--text); flex: 1;">
+    <input type="text" id="searchId" placeholder="Search by Emp ID..." oninput="filterEmployees()"
+      style="padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--text); flex: 1;">
+    <button class="btn btn-secondary" onclick="clearFilters()"
+      style="padding: 10px 24px; width: auto; background-color: transparent; border-color: var(--border);">Clear</button>
+  </div>
+
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Photo</th>
+          <th>Emp ID</th>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Department</th>
+          <th>Designation</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr class="emp-row">
+          <td>
+            <div
+              style="width: 32px; height: 32px; border-radius: 50%; background-color: #3b82f6; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px;">
+              {{ (u.name or u.email or 'U')[:1]|upper }}
+            </div>
+          </td>
+          <td class="col-id">{{ u.id }}</td>
+          <td class="col-name">{{ u.name }}</td>
+          <td>{{ u.email or 'N/A' }}</td>
+          <td>{{ u.department or 'N/A' }}</td>
+          <td>{{ u.designation or 'N/A' }}</td>
+          <td>
+            {% if u.is_online %}
+            <span class="badge badge-approved" style="padding: 4px 12px; font-weight: 500;">Active</span>
+            {% else %}
+            <span class="badge"
+              style="padding: 4px 12px; font-weight: 500; background-color: rgba(239, 68, 68, 0.1); color: var(--danger); border-color: rgba(239, 68, 68, 0.2);">Inactive</span>
+            {% endif %}
+          </td>
+          <td style="white-space:nowrap">
+            <button class="btn btn-secondary" data-user='{{ u | tojson | forceescape }}' onclick='openEditModal(this)'
+              style="padding: 4px 12px; font-size: 12px; width: auto; margin-right: 8px; background-color: transparent; border-color: var(--border);">Edit</button>
+            <form method="post" action="{{ url_for('it_delete_employee', oid=u._id) }}" style="display:inline-block"
+              onsubmit="return confirm('Are you sure you want to delete this user? This action cannot be undone.')">
+              <button class="btn btn-secondary"
+                style="padding: 4px 12px; font-size: 12px; width: auto; color: var(--danger); border-color: var(--danger); background: transparent;">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if session.get('role') in ['hr', 'itadmin'] %}
+<div id="createEmployeeModal" class="modal">
+  <div class="modal-content"
+    style="max-width: 600px; background-color: var(--surface-modal); border: 1px solid var(--border); box-shadow: var(--shadow); border-radius: 12px; padding: 32px;">
+    <div class="modal-header"
+      style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+      <h3 class="modal-title" style="margin: 0; font-size: 20px; color: var(--text);">Create New Employee</h3>
+      <button type="button" class="close-btn"
+        onclick="document.getElementById('createEmployeeModal').classList.remove('active')"
+        style="background: transparent; border: none; font-size: 24px; color: var(--text-secondary); cursor: pointer;">&times;</button>
+    </div>
+    <form method="post" action="{{ url_for('it_create_employee') }}" class="info-grid"
+      style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap: 16px;">
+      <div class="form-group" style="display: flex; flex-direction: column; gap: 8px;"><label
+          style="font-size: 13px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Employee
+          ID</label><input name="id" required
+          style="padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
+      </div>
+      <div class="form-group" style="display: flex; flex-direction: column; gap: 8px;"><label
+          style="font-size: 13px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Name</label><input
+          name="name" required
+          style="padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
+      </div>
+      <div class="form-group" style="display: flex; flex-direction: column; gap: 8px;"><label
+          style="font-size: 13px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Email</label><input
+          name="email" type="email"
+          style="padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
+      </div>
+      <div class="form-group" style="display: flex; flex-direction: column; gap: 8px;"><label
+          style="font-size: 13px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Role</label><select
+          name="role" required
+          style="padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
+          <option value="employee">Employee</option>
+          <option value="supervisor">Supervisor</option>
+          <option value="hr">HR Admin</option>
+          <option value="itadmin">IT Admin</option>
+        </select></div>
+      <div class="form-group" style="display: flex; flex-direction: column; gap: 8px;"><label
+          style="font-size: 13px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Department</label><input
+          name="department"
+          style="padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
+      </div>
+      <div class="form-group" style="display: flex; flex-direction: column; gap: 8px;"><label
+          style="font-size: 13px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Designation</label><input
+          name="designation"
+          style="padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
+      </div>
+      <div class="form-group" style="display: flex; flex-direction: column; gap: 8px;"><label
+          style="font-size: 13px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Supervisor</label>
+        <select name="supervisor"
+          style="padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
+          <option value="">No Supervisor</option>
+          {% for s in supervisors %}
+          <option value="{{ s.id }}">{{ s.name }} ({{ s.id }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group" style="display: flex; flex-direction: column; gap: 8px;"><label
+          style="font-size: 13px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Leave
+          Balance</label><input name="leave_balance" type="number" value="14" min="0" required
+          style="padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
+      </div>
+      <div class="form-group" style="display: flex; flex-direction: column; gap: 8px;"><label
+          style="font-size: 13px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Password</label><input
+          name="password" type="password" required
+          style="padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
+      </div>
+      <div style="grid-column: 1 / -1; display: flex; justify-content: flex-end; margin-top: 24px;">
+        <button class="btn btn-primary" type="submit" style="width: auto; padding: 10px 24px;">Create Employee</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<div id="editEmployeeModal" class="modal">
+  <div class="modal-content"
+    style="max-width: 600px; background-color: var(--surface-modal); border: 1px solid var(--border); box-shadow: var(--shadow); border-radius: 12px; padding: 32px;">
+    <div class="modal-header"
+      style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+      <h3 class="modal-title" style="margin: 0; font-size: 20px; color: var(--text);">Edit Employee</h3>
+      <button type="button" class="close-btn"
+        onclick="document.getElementById('editEmployeeModal').classList.remove('active')"
+        style="background: transparent; border: none; font-size: 24px; color: var(--text-secondary); cursor: pointer;">&times;</button>
+    </div>
+    <form id="editForm" method="post" action="" class="info-grid"
+      style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap: 16px;">
+      <div class="form-group" style="display: flex; flex-direction: column; gap: 8px;">
+        <label
+          style="font-size: 13px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Employee
+          ID</label>
+        <input name="id" id="edit_id" required
+          style="padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
+      </div>
+      <div class="form-group" style="display: flex; flex-direction: column; gap: 8px;">
+        <label
+          style="font-size: 13px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Name</label>
+        <input name="name" id="edit_name" required
+          style="padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
+      </div>
+      <div class="form-group" style="display: flex; flex-direction: column; gap: 8px;">
+        <label
+          style="font-size: 13px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Email</label>
+        <input name="email" id="edit_email" type="email"
+          style="padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
+      </div>
+      <div class="form-group" style="display: flex; flex-direction: column; gap: 8px;">
+        <label
+          style="font-size: 13px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Role</label>
+        <select name="role" id="edit_role" required
+          style="padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
+          <option value="employee">Employee</option>
+          <option value="supervisor">Supervisor</option>
+          <option value="hr">HR Admin</option>
+          <option value="itadmin">IT Admin</option>
+        </select>
+      </div>
+      <div class="form-group" style="display: flex; flex-direction: column; gap: 8px;">
+        <label
+          style="font-size: 13px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Department</label>
+        <input name="department" id="edit_dept"
+          style="padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
+      </div>
+      <div class="form-group" style="display: flex; flex-direction: column; gap: 8px;">
+        <label
+          style="font-size: 13px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Designation</label>
+        <input name="designation" id="edit_desig"
+          style="padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
+      </div>
+      <div class="form-group" style="display: flex; flex-direction: column; gap: 8px;">
+        <label
+          style="font-size: 13px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Supervisor</label>
+        <select name="supervisor" id="edit_sup"
+          style="padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
+          <option value="">No Supervisor</option>
+          {% for s in supervisors %}
+          <option value="{{ s.id }}">{{ s.name }} ({{ s.id }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group" style="display: flex; flex-direction: column; gap: 8px;">
+        <label style="font-size: 13px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Leave
+          Balance</label>
+        <input type="number" name="leave_balance" id="edit_leave" min="0"
+          style="padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
+      </div>
+      <div style="grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px;">
+        <button type="button" class="btn btn-secondary"
+          onclick="document.getElementById('editEmployeeModal').classList.remove('active')"
+          style="width: auto; padding: 10px 24px;">Cancel</button>
+        <button class="btn btn-primary" type="submit" style="width: auto; padding: 10px 24px;">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function filterEmployees() {
+    const nameSearch = document.getElementById('searchName').value.toLowerCase();
+    const idSearch = document.getElementById('searchId').value.toLowerCase();
+    const rows = document.querySelectorAll('.emp-row');
+
+    rows.forEach(row => {
+      const name = row.querySelector('.col-name').textContent.toLowerCase();
+      const id = row.querySelector('.col-id').textContent.toLowerCase();
+
+      if (name.includes(nameSearch) && id.includes(idSearch)) {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+      }
+    });
+  }
+
+  function clearFilters() {
+    document.getElementById('searchName').value = '';
+    document.getElementById('searchId').value = '';
+    filterEmployees();
+  }
+
+  function openEditModal(btn) {
+    const user = JSON.parse(btn.getAttribute('data-user'));
+    const modal = document.getElementById('editEmployeeModal');
+    const form = document.getElementById('editForm');
+    form.action = `/it/employees/edit/${user._id}`;
+
+    document.getElementById('edit_id').value = user.id;
+    document.getElementById('edit_name').value = user.name;
+    document.getElementById('edit_email').value = user.email || '';
+    document.getElementById('edit_role').value = user.role;
+    document.getElementById('edit_dept').value = user.department || '';
+    document.getElementById('edit_desig').value = user.designation || '';
+    document.getElementById('edit_sup').value = user.supervisor || '';
+    document.getElementById('edit_leave').value = user.leave_balance || 0;
+
+    modal.classList.add('active');
+  }
+</script>
+{% endblock %}
+```

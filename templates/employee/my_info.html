@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}My Information - HRMS V20{% endblock %}
+
+{% block before_tabs %}
+<div class="stats-grid" style="margin-bottom: 24px;">
+  <div class="stat-card-blue">
+    <div class="stat-label">Pending Requests</div>
+    <div class="stat-value">{{ stats.pending_requests }}</div>
+  </div>
+  <div class="stat-card-blue">
+    <div class="stat-label">Leave Balance</div>
+    <div class="stat-value">{{ user.leave_balance }}</div>
+  </div>
+  <div class="stat-card-blue">
+    <div class="stat-label">My Documents</div>
+    <div class="stat-value">{{ stats.docs_count }}</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="padding: 30px;">
+  <h3 style="margin-bottom: 24px; font-size: 18px; font-weight: 600; color: var(--text);">Personal Information</h3>
+  <div class="info-grid">
+    <div class="info-item">
+      <div class="info-label">Employee ID</div>
+      <div class="info-value">{{ user.id }}</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Name</div>
+      <div class="info-value">{{ user.name }}</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Email</div>
+      <div class="info-value">{{ user.email or 'N/A' }}</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Department</div>
+      <div class="info-value">{{ user.department }}</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Role</div>
+      <div class="info-value">{{ user.role }}</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Leave Balance</div>
+      <div class="info-value">{{ user.leave_balance }} days</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

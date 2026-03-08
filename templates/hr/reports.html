@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Reports & Export{% endblock %}
+
+{% block content %}
+<div class="card" style="padding: 30px;">
+  <div class="card-header" style="margin-bottom: 24px;">
+    <h3 class="card-title">Reports & Export</h3>
+  </div>
+  <form method="post" action="{{ url_for('hr_reports') }}">
+    <div class="info-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 24px; gap: 20px;">
+      <div class="form-group" style="margin-bottom: 0;">
+        <label>Department</label>
+        <select name="department">
+          <option value="">All Departments</option>
+          <option value="IT" {% if filters.get('department')=='IT' %}selected{% endif %}>IT</option>
+          <option value="HR" {% if filters.get('department')=='HR' %}selected{% endif %}>HR</option>
+          <option value="Finance" {% if filters.get('department')=='Finance' %}selected{% endif %}>Finance</option>
+          <option value="Operations" {% if filters.get('department')=='Operations' %}selected{% endif %}>Operations
+          </option>
+          <option value="Sales" {% if filters.get('department')=='Sales' %}selected{% endif %}>Sales</option>
+          <option value="Marketing" {% if filters.get('department')=='Marketing' %}selected{% endif %}>Marketing
+          </option>
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom: 0;">
+        <label>Supervisor</label>
+        <select name="supervisor">
+          <option value="">All Supervisors</option>
+          {% for s in supervisors %}
+          <option value="{{ s.id }}" {% if filters.get('supervisor')==s.id %}selected{% endif %}>{{ s.id }} - {{ s.name
+            }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom: 0;">
+        <label>From Date</label>
+        <input type="date" name="from_date" value="{{ filters.get('from_date', '') }}">
+      </div>
+      <div class="form-group" style="margin-bottom: 0;">
+        <label>To Date</label>
+        <input type="date" name="to_date" value="{{ filters.get('to_date', '') }}">
+      </div>
+    </div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+      <button class="btn" type="submit"
+        style="width: 100%; padding: 12px; background-color: var(--success); color: white; border: none; border-radius: 4px; font-weight: 500;">Generate
+        Report</button>
+      <button class="btn btn-secondary" type="submit" formaction="{{ url_for('hr_reports_export') }}"
+        style="width: 100%; padding: 12px; background-color: transparent; border: 1px solid var(--border); border-radius: 4px; font-weight: 500;">Export
+        to CSV</button>
+    </div>
+  </form>
+</div>
+
+{% if report_data is not none %}
+<div class="card" style="padding: 30px;">
+  <div class="card-header" style="margin-bottom: 24px;">
+    <h3 class="card-title">Generated Report</h3>
+  </div>
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Employee ID</th>
+          <th>Employee Name</th>
+          <th>Department</th>
+          <th>Supervisor</th>
+          <th>Request Type</th>
+          <th>Request Date</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if not report_data %}
+        <tr>
+          <td colspan="7" style="text-align: center; padding: 20px; color: var(--text-secondary);">No records found
+            matching these criteria.</td>
+        </tr>
+        {% else %}
+        {% for row in report_data %}
+        <tr>
+          <td>{{ row.employee_id }}</td>
+          <td>{{ row.emp_name }}</td>
+          <td>{{ row.department }}</td>
+          <td>{{ row.sup_name }}</td>
+          <td>{{ row.type }}</td>
+          <td>{{ row.date }}</td>
+          <td>
+            <span
+              class="badge {{ 'badge-approved' if row.status == 'Approved' else 'badge-pending' if row.status in ['Pending', 'SupervisorApproved'] else 'badge-rejected' }}">
+              {{ row.status }}
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

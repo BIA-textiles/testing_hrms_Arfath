@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+{% block title %}Requests - {{ target_emp.name }}{% endblock %}
+{% block content %}
+
+<div style="margin-bottom: 24px; display: flex; align-items: center; gap: 16px;">
+    <a href="javascript:history.back()" class="btn btn-secondary"
+        style="padding: 6px 16px; background: transparent; border: 1px solid var(--border); color: var(--text-secondary);">&larr;
+        Back</a>
+    <h2 style="margin: 0;">Employee Requests: {{ target_emp.name }} ({{ target_emp.id }})</h2>
+</div>
+
+<div class="card" style="padding: 24px; margin-bottom: 24px;">
+    <h3 style="margin-bottom: 16px;">Employee Details</h3>
+    <div class="info-grid">
+        <div class="info-item">
+            <div class="info-label">Name</div>
+            <div class="info-value">{{ target_emp.name }}</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Email</div>
+            <div class="info-value">{{ target_emp.email }}</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Department</div>
+            <div class="info-value">{{ target_emp.department }}</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Designation</div>
+            <div class="info-value">{{ target_emp.designation }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="requests-section" style="display: flex; flex-direction: column; gap: 32px;">
+
+    <!-- Leave Requests -->
+    <div class="card" style="padding: 24px;">
+        <h3 style="margin-bottom: 16px;">Leave Requests</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>From</th>
+                        <th>To</th>
+                        <th>Days</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if not requests_data.leave %}
+                    <tr>
+                        <td colspan="5" style="text-align:center; padding: 20px; color:var(--text-secondary)">No leave
+                            requests found.</td>
+                    </tr>
+                    {% else %}
+                    {% for r in requests_data.leave %}
+                    <tr>
+                        <td>{{ r.type }}</td>
+                        <td>{{ r.from_date }}</td>
+                        <td>{{ r.to_date }}</td>
+                        <td>{{ r.days or 1 }}</td>
+                        <td><span
+                                class="badge {{ 'badge-approved' if r.status=='Approved' else 'badge-pending' if 'Pending' in r.status or 'Approved' in r.status else 'badge-rejected' }}">{{
+                                r.status }}</span></td>
+                    </tr>
+                    {% endfor %}
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Visa Applications -->
+    <div class="card" style="padding: 24px;">
+        <h3 style="margin-bottom: 16px;">Visa Applications</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Country</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if not requests_data.visa %}
+                    <tr>
+                        <td colspan="4" style="text-align:center; padding: 20px; color:var(--text-secondary)">No visa
+                            applications found.</td>
+                    </tr>
+                    {% else %}
+                    {% for r in requests_data.visa %}
+                    <tr>
+                        <td>{{ r.type }}</td>
+                        <td>{{ r.country }}</td>
+                        <td><span
+                                class="badge {{ 'badge-approved' if r.status=='Approved' else 'badge-pending' if 'Pending' in r.status or 'Approved' in r.status else 'badge-rejected' }}">{{
+                                r.status }}</span></td>
+                    </tr>
+                    {% endfor %}
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Flight Requests -->
+    <div class="card" style="padding: 24px;">
+        <h3 style="margin-bottom: 16px;">Flight Requests</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Origin</th>
+                        <th>Destination</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if not requests_data.flight %}
+                    <tr>
+                        <td colspan="5" style="text-align:center; padding: 20px; color:var(--text-secondary)">No flight
+                            requests found.</td>
+                    </tr>
+                    {% else %}
+                    {% for r in requests_data.flight %}
+                    <tr>
+                        <td>{{ r.type }}</td>
+                        <td>{{ r.origin }}</td>
+                        <td>{{ r.destination }}</td>
+                        <td>{{ r.date }}</td>
+                        <td><span
+                                class="badge {{ 'badge-approved' if r.status=='Approved' else 'badge-pending' if 'Pending' in r.status or 'Approved' in r.status else 'badge-rejected' }}">{{
+                                r.status }}</span></td>
+                    </tr>
+                    {% endfor %}
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Cab Requests -->
+    <div class="card" style="padding: 24px;">
+        <h3 style="margin-bottom: 16px;">Cab Requests</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Origin</th>
+                        <th>Destination</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if not requests_data.cab %}
+                    <tr>
+                        <td colspan="5" style="text-align:center; padding: 20px; color:var(--text-secondary)">No cab
+                            requests found.</td>
+                    </tr>
+                    {% else %}
+                    {% for r in requests_data.cab %}
+                    <tr>
+                        <td>{{ r.date }}</td>
+                        <td>{{ r.time }}</td>
+                        <td>{{ r.origin }}</td>
+                        <td>{{ r.destination }}</td>
+                        <td><span
+                                class="badge {{ 'badge-approved' if r.status=='Approved' else 'badge-pending' if 'Pending' in r.status or 'Approved' in r.status else 'badge-rejected' }}">{{
+                                r.status }}</span></td>
+                    </tr>
+                    {% endfor %}
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Insurance Applications -->
+    <div class="card" style="padding: 24px;">
+        <h3 style="margin-bottom: 16px;">Insurance Applications</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Dependents</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if not requests_data.insurance %}
+                    <tr>
+                        <td colspan="3" style="text-align:center; padding: 20px; color:var(--text-secondary)">No
+                            insurance applications found.</td>
+                    </tr>
+                    {% else %}
+                    {% for r in requests_data.insurance %}
+                    <tr>
+                        <td>{{ r.insurance_type }}</td>
+                        <td>{{ r.dependents }}</td>
+                        <td><span
+                                class="badge {{ 'badge-approved' if r.status=='Approved' else 'badge-pending' if 'Pending' in r.status or 'Approved' in r.status else 'badge-rejected' }}">{{
+                                r.status }}</span></td>
+                    </tr>
+                    {% endfor %}
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Documents -->
+    <div class="card" style="padding: 24px;">
+        <h3 style="margin-bottom: 16px;">Uploaded Documents</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Upload Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if not requests_data.documents %}
+                    <tr>
+                        <td colspan="4" style="text-align:center; padding: 20px; color:var(--text-secondary)">No
+                            documents
+                            found.</td>
+                    </tr>
+                    {% else %}
+                    {% for d in requests_data.documents %}
+                    <tr>
+                        <td>{{ d.name }}</td>
+                        <td>{{ d.type }}</td>
+                        <td>{{ d.upload_date }}</td>
+                        <td>
+                            <span
+                                class="badge {{ 'badge-approved' if d.status=='Approved' else 'badge-pending' if 'Pending' in d.status or d.status=='SupervisorApproved' else 'badge-rejected' }}">
+                                {{ d.status }}
+                            </span>
+                            {% if d.status == 'Rejected' and d.rejection_reason %}
+                            <div style="margin-top: 4px; font-size: 12px; color: var(--danger); font-weight: 500;">
+                                Reason: {{ d.rejection_reason }}
+                            </div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

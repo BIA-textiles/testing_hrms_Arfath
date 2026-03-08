@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}My Information{% endblock %}
+{% block content %}
+<div class="card" style="padding: 30px;">
+  <div class="card-header" style="margin-bottom: 24px;">
+    <h3 class="card-title">My Team Members</h3>
+  </div>
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Emp ID</th>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Designation</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if not team %}
+        <tr>
+          <td colspan="5" style="text-align:center; padding: 20px; color:var(--text-secondary)">No team members found
+          </td>
+        </tr>
+        {% else %}
+        {% for member in team %}
+        <tr>
+          <td>{{ member.id }}</td>
+          <td>{{ member.name }}</td>
+          <td>{{ member.email }}</td>
+          <td>{{ member.designation }}</td>
+          <td>
+            <a href="{{ url_for('view_employee_requests', emp_id=member.id) }}" class="btn btn-secondary"
+              style="padding: 6px 12px; font-size: 13px; text-decoration: none;">View Requests</a>
+          </td>
+        </tr>
+        {% endfor %}
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

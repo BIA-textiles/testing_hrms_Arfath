@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Visa Applications - HRMS V20{% endblock %}
+
+{% block before_tabs %}
+<div class="stats-grid" style="margin-bottom: 24px;">
+  <div class="stat-card-blue">
+    <div class="stat-label">Pending Requests</div>
+    <div class="stat-value">{{ stats.pending_requests }}</div>
+  </div>
+  <div class="stat-card-blue">
+    <div class="stat-label">Leave Balance</div>
+    <div class="stat-value">{{ user.leave_balance }}</div>
+  </div>
+  <div class="stat-card-blue">
+    <div class="stat-label">My Documents</div>
+    <div class="stat-value">{{ stats.docs_count }}</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="padding: 30px;">
+  <div class="card-header">
+    <h3 class="card-title">My Visas & Work Permits</h3>
+    <button class="btn btn-primary" onclick="openApplicationModal()"
+      style="width: auto; padding: 8px 16px; font-size: 13px;">New Application</button>
+  </div>
+
+  <div class="table-container" style="margin-top: 16px;">
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Country</th>
+          <th>Issue Date</th>
+          <th>Expiry Date</th>
+          <th>Days Left</th>
+          <th>Status</th>
+          <th style="width: 25%;">Remarks/Reason</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if not items %}
+        <tr>
+          <td colspan="7" style="text-align:center; padding: 20px; color:var(--text-secondary)">No visa records</td>
+        </tr>
+        {% else %}
+        {% for it in items %}
+        <tr>
+          <td>{{ it.type }}</td>
+          <td>{{ it.country }}</td>
+          <td>{{ it.issue_date or '-' }}</td> <!-- Placeholder if not implemented backend -->
+          <td>{{ it.expiry_date or '-' }}</td> <!-- Placeholder if not implemented backend -->
+          <td>{{ it.days_left or '-' }}</td> <!-- Placeholder if not implemented backend -->
+          <td><span
+              class="badge {{ 'badge-approved' if it.status=='Approved' else 'badge-pending' if it.status in ['Pending','SupervisorApproved'] else 'badge-rejected' }}">{{
+              it.status }}</span></td>
+          <td>
+            <span style="font-size: 13px; color: var(--text-secondary);">{{ it.reason or '-' }}</span>
+            {% if it.status == "Rejected" and it.rejection_reason %}
+            <div style="margin-top: 4px; font-size: 12px; color: var(--danger); font-weight: 500;">
+              Rejected: {{ it.rejection_reason }}
+            </div>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Application Modal -->
+<div id="applicationModal" class="modal">
+  <div class="modal-content" style="max-width: 500px;">
+    <div class="modal-header">
+      <h3 class="modal-title">New Visa Application</h3>
+      <button class="close-btn" onclick="closeApplicationModal()">&times;</button>
+    </div>
+    <form method="post" action="{{ url_for('employee_visa_new') }}" class="info-grid"
+      style="grid-template-columns: 1fr; margin-bottom: 0;">
+      <div class="form-group"><label>Type</label><select name="type" required>
+          <option>Business</option>
+          <option>Work</option>
+          <option>Work Permit</option>
+        </select></div>
+      <div class="form-group"><label>Country</label><input name="country" required></div>
+      <div class="form-group" style="grid-column: 1 / -1;"><label>Reason</label><textarea name="reason" rows="2"
+          required></textarea></div>
+      <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 10px;">
+        <button type="button" class="btn-secondary" onclick="closeApplicationModal()"
+          style="width: auto; padding: 8px 16px;">Cancel</button>
+        <button type="submit" style="width: auto; padding: 8px 16px;">Submit</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function openApplicationModal() {
+    document.getElementById('applicationModal').classList.add('active');
+  }
+
+  function closeApplicationModal() {
+    document.getElementById('applicationModal').classList.remove('active');
+  }
+</script>
+{% endblock %}

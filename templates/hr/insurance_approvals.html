@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+{% block title %}Approvals{% endblock %}
+
+{% block content %}
+<div class="card" style="padding: 30px;">
+  <div class="card-header" style="margin-bottom: 24px;">
+    <h3 class="card-title">Medical Insurance Application Approvals</h3>
+  </div>
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Employee</th>
+          <th>Application Date</th>
+          <th>Coverage Type</th>
+          <th>Dependents</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if not items %}
+        <tr>
+          <td colspan="6" style="text-align:center; padding: 20px; color:var(--text-secondary)">No pending insurance
+            applications</td>
+        </tr>
+        {% else %}
+        {% for it in items %}
+        <tr>
+          <td>{{ it.employee_id }}</td>
+          <td>{{ it.created_at.strftime('%Y-%m-%d') if it.created_at else 'N/A' }}</td>
+          <td>{{ it.coverage_type }}</td>
+          <td>{{ it.dependents }}</td>
+          <td><span
+              class="badge {{ 'badge-approved' if it.status=='Approved' else 'badge-pending' if it.status in ['Pending','SupervisorApproved'] else 'badge-rejected' }}">{{
+              it.status }}</span></td>
+          <td style="white-space:nowrap">
+            {% if it.status in ['Pending', 'SupervisorApproved'] %}
+            <form method="post" action="{{ url_for('hr_approve', req_type=req_type, rid=it._id) }}"
+              style="display:inline-block"><button class="btn btn-primary"
+                style="padding: 4px 12px; font-size: 12px; width: auto; margin-right: 8px;">Approve</button></form>
+            <form method="post" action="{{ url_for('hr_reject',  req_type=req_type, rid=it._id) }}"
+              style="display:inline-block" onsubmit="return submitRejectWithReason(this)">
+              <input type="hidden" name="rejection_reason" value="">
+              <button class="btn btn-secondary"
+                style="padding: 4px 12px; font-size: 12px; width: auto; background-color: transparent; border-color: var(--border);">Reject</button>
+            </form>
+            {% endif %}
+            <button type="button" class="btn btn-secondary"
+              onclick="openInsuranceModal('{{ it.employee_id }}', '{{ it.coverage_type }}', '{{ it.dependents }}', this.getAttribute('data-date'), '{{ it.status }}', this.getAttribute('data-reason'))"
+              data-reason="{{ it.reason or 'No reason provided' }}"
+              data-date="{{ it.created_at.strftime('%Y-%m-%d') if it.created_at else 'N/A' }}"
+              style="padding: 4px 12px; font-size: 12px; width: auto; background-color: transparent; border-color: var(--border); margin-left: 8px;">View</button>
+            {% if session.get('role') == 'itadmin' %}
+            <form method="post" action="{{ url_for('it_delete_request', req_type='insurance', rid=it._id) }}"
+              style="display:inline-block" onsubmit="return confirm('Delete this request?')">
+              <button class="btn btn-secondary"
+                style="padding: 4px 12px; font-size: 12px; width: auto; color: var(--danger); border-color: var(--danger); background: transparent; margin-left: 8px;">Delete</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        {% endif %}
+    </table>
+  </div>
+</div>
+
+<div class="card" style="padding: 30px;">
+  <div class="card-header" style="margin-bottom: 24px;">
+    <h3 class="card-title">Approval History</h3>
+  </div>
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Employee</th>
+          <th>Coverage Type</th>
+          <th>Dependents</th>
+          <th>Date</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if not history %}
+        <tr>
+          <td colspan="6" style="text-align:center; padding: 20px; color:var(--text-secondary)">No approval history</td>
+        </tr>
+        {% else %}
+        {% for it in history %}
+        <tr>
+          <td>{{ it.employee_id }}</td>
+          <td>{{ it.coverage_type }}</td>
+          <td>{{ it.dependents }}</td>
+          <td>{{ it.created_at.strftime('%Y-%m-%d') if it.created_at else '' }}</td>
+          <td><span
+              class="badge {{ 'badge-approved' if it.status=='Approved' else 'badge-pending' if it.status in ['Pending','SupervisorApproved'] else 'badge-rejected' }}">{{
+              it.status }}</span></td>
+          <td style="white-space:nowrap">
+            <button type="button" class="btn btn-secondary"
+              onclick="openInsuranceModal('{{ it.employee_id }}', '{{ it.coverage_type }}', '{{ it.dependents }}', this.getAttribute('data-date'), '{{ it.status }}', this.getAttribute('data-reason'))"
+              data-reason="{{ it.reason or 'No reason provided' }}"
+              data-date="{{ it.created_at.strftime('%Y-%m-%d') if it.created_at else 'N/A' }}"
+              style="padding: 4px 12px; font-size: 12px; width: auto; background-color: transparent; border-color: var(--border);">View</button>
+            {% if session.get('role') == 'itadmin' %}
+            <form method="post" action="{{ url_for('it_delete_request', req_type='insurance', rid=it._id) }}"
+              style="display:inline-block" onsubmit="return confirm('Delete this request?')">
+              <button class="btn btn-secondary"
+                style="padding: 4px 12px; font-size: 12px; width: auto; color: var(--danger); border-color: var(--danger); background: transparent; margin-left: 8px;">Delete</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  function submitRejectWithReason(form) {
+    const reason = prompt("Please provide a reason for rejection:");
+    if (reason === null) {
+      return false; // User cancelled
+    }
+    form.querySelector('input[name="rejection_reason"]').value = reason;
+    return true;
+  }
+</script>
+
+<!-- Insurance Viewer Modal -->
+<div id="insuranceViewerModal" class="modal">
+  <div class="modal-content"
+    style="max-width: 500px; padding: 24px; border-radius: 12px; background-color: var(--surface-modal); border: 1px solid var(--border); box-shadow: var(--shadow);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+      <h3 style="margin: 0; font-size: 20px; color: var(--text);">Insurance App Details</h3>
+      <button class="close-btn" onclick="closeInsuranceModal()"
+        style="background: none; border: none; font-size: 24px; color: var(--text-secondary); cursor: pointer;">&times;</button>
+    </div>
+
+    <div style="padding: 10px 0;">
+      <h4 style="color: var(--primary); margin-top: 0; margin-bottom: 16px; font-size: 16px;">General Information</h4>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 14px; margin-bottom: 20px;">
+        <div><strong style="color: var(--text);">Employee:</strong> <span id="m_emp"
+            style="color: var(--text-secondary);"></span></div>
+        <div><strong style="color: var(--text);">Coverage:</strong> <span id="m_type"
+            style="color: var(--text-secondary);"></span></div>
+        <div><strong style="color: var(--text);">Dependents:</strong> <span id="m_deps"
+            style="color: var(--text-secondary);"></span></div>
+        <div><strong style="color: var(--text);">Applied On:</strong> <span id="m_date"
+            style="color: var(--text-secondary);"></span></div>
+        <div>
+          <strong style="color: var(--text);">Status:</strong>
+          <span id="m_status_badge" class="badge"></span>
+        </div>
+      </div>
+
+      <div
+        style="background-color: var(--surface-alt); border: 1px solid var(--border); border-radius: 6px; padding: 16px; margin-bottom: 24px;">
+        <div style="font-weight: 600; font-size: 14px; color: var(--text); margin-bottom: 8px;">📝 Reason / Notes:</div>
+        <div id="m_reason"
+          style="font-size: 14px; color: var(--text-secondary); line-height: 1.5; white-space: pre-wrap;"></div>
+      </div>
+
+      <div id="m_rejection_container"
+        style="display: none; background-color: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger); border-radius: 6px; padding: 16px; margin-bottom: 24px;">
+        <div style="font-weight: 600; font-size: 14px; color: var(--danger); margin-bottom: 8px;">❌ Rejection Reason:
+        </div>
+        <div id="m_rejection_reason"
+          style="font-size: 14px; color: var(--text); line-height: 1.5; white-space: pre-wrap;"></div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end;">
+        <button type="button" class="btn btn-secondary" onclick="closeInsuranceModal()"
+          style="padding: 10px 24px; width: auto; font-size: 14px;">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openInsuranceModal(emp, type, deps, date, status, reason) {
+    document.getElementById('m_emp').innerText = emp;
+    document.getElementById('m_type').innerText = type || 'N/A';
+    document.getElementById('m_deps').innerText = deps || '0';
+    document.getElementById('m_date').innerText = date || 'N/A';
+
+    if (reason === 'undefined' || !reason || reason.trim() === '') {
+      document.getElementById('m_reason').innerText = 'No reason provided';
+    } else {
+      document.getElementById('m_reason').innerText = reason;
+    }
+
+
+    let rjc = document.getElementById('m_rejection_container');
+    let rjText = document.getElementById('m_rejection_reason');
+    if (status === 'Rejected' && arguments.length > 5) {
+      let rreason = arguments[arguments.length - 1]; // We'll pass it as the last arg
+      if (rreason && rreason !== 'undefined' && rreason.trim() !== '') {
+        rjc.style.display = 'block';
+        rjText.innerText = rreason;
+      } else {
+        rjc.style.display = 'none';
+      }
+    } else {
+      rjc.style.display = 'none';
+    }
+
+    let badge = document.getElementById('m_status_badge');
+    badge.innerText = status;
+    badge.className = 'badge';
+    if (status === 'Approved') badge.classList.add('badge-approved');
+    else if (status === 'Rejected') badge.classList.add('badge-rejected');
+    else badge.classList.add('badge-pending');
+
+    document.getElementById('insuranceViewerModal').classList.add('active');
+  }
+
+  function closeInsuranceModal() {
+    document.getElementById('insuranceViewerModal').classList.remove('active');
+  }
+</script>
+{% endblock %}

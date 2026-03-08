@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+{% block title %}My Approvals{% endblock %}
+{% block content %}
+<div class="card" style="padding: 30px; margin-bottom: 24px;">
+  <div style="overflow-x: auto; padding-bottom: 2px; margin-bottom: 24px;">
+    <div class="nav-tabs" style="display: flex; white-space: nowrap; min-width: max-content; margin-bottom: 4px;">
+      <a class="nav-tab active" href="javascript:void(0)" onclick="switchTab('leave', this)">Leave Approvals</a>
+      <a class="nav-tab" href="javascript:void(0)" onclick="switchTab('visa', this)">Visa Approvals</a>
+      <a class="nav-tab" href="javascript:void(0)" onclick="switchTab('flight', this)">Flight Approvals</a>
+      <a class="nav-tab" href="javascript:void(0)" onclick="switchTab('insurance', this)">Insurance Approvals</a>
+      <a class="nav-tab" href="javascript:void(0)" onclick="switchTab('cab', this)">Cab Approvals</a>
+    </div>
+  </div>
+
+  {% for key in ['leave', 'visa', 'flight', 'insurance', 'cab'] %}
+  {% set label = 'Leave' if key == 'leave' else 'Visa' if key == 'visa' else 'Flight' if key == 'flight' else
+  'Insurance' if key == 'insurance' else 'Cab' %}
+  <div id="tab-{{ key }}" class="tab-content {{ 'active' if key == 'leave' else 'hidden' }}">
+    <div class="card-header" style="margin-bottom: 24px;">
+      <h3 class="card-title">Pending {{ label }} Requests</h3>
+    </div>
+
+    {% set p_arr = pending_data[key] %}
+    {% if p_arr %}
+    <div class="table-container" style="margin-bottom: 40px;">
+      <table>
+        <thead>
+          <tr>
+            <th>Employee ID</th>
+            <th>Details</th>
+            <th>Reason</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for it in p_arr %}
+          <tr>
+            <td>{{ it.employee_id }}</td>
+            <td>{% if it.type %}{{ it.type }}{% endif %}{% if it.country %} {{ it.country }}{% endif %}{% if it.origin
+              %}
+              {{ it.origin }} → {{ it.destination }}{% endif %}{% if it.coverage_type %}{{ it.coverage_type }}{% endif
+              %}
+            </td>
+            <td>{{ it.reason or it.notes or 'N/A' }}</td>
+            <td><span class="badge badge-pending">{{ it.status }}</span></td>
+            <td style="white-space:nowrap">
+              <button type="button" class="btn btn-secondary" onclick="openRequestModal('{{ key }}', this)"
+                data-item='{{ it | tojson | forceescape }}'
+                style="padding: 4px 12px; font-size: 12px; width: auto; margin-right: 8px; background-color: transparent; border-color: var(--border);">View</button>
+              <form method="post" action="{{ url_for('supervisor_approve', req_type=key, rid=it._id) }}"
+                style="display:inline-block"><button class="btn btn-primary"
+                  style="padding: 4px 12px; font-size: 12px; width: auto; margin-right: 8px;">Approve</button></form>
+              <form method="post" action="{{ url_for('supervisor_reject',  req_type=key, rid=it._id) }}"
+                style="display:inline-block" onsubmit="return submitRejectWithReason(this)"><input type="hidden"
+                  name="rejection_reason" value=""><button class="btn btn-secondary"
+                  style="padding: 4px 12px; font-size: 12px; width: auto;">Reject</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div style="text-align:center; padding: 20px; color:var(--text-secondary); margin-bottom: 40px;">No pending {{ label
+      | lower }} requests.</div>
+    {% endif %}
+
+    <div class="card-header" style="margin-bottom: 24px;">
+      <h3 class="card-title">{{ label }} Approval History</h3>
+    </div>
+    {% set h_arr = history_data[key] %}
+    {% if h_arr %}
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Employee ID</th>
+            <th>Details</th>
+            <th>Reason</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for it in h_arr %}
+          <tr>
+            <td>{{ it.employee_id }}</td>
+            <td>{% if it.type %}{{ it.type }}{% endif %}{% if it.country %} {{ it.country }}{% endif %}{% if it.origin
+              %}
+              {{ it.origin }} → {{ it.destination }}{% endif %}{% if it.coverage_type %}{{ it.coverage_type }}{% endif
+              %}
+            </td>
+            <td>{{ it.reason or it.notes or '-' }}</td>
+            <td><span
+                class="badge {{ 'badge-approved' if it.status=='Approved' or it.status=='SupervisorApproved' else 'badge-rejected' }}">{{
+                it.status }}</span></td>
+            <td>
+              <button type="button" class="btn btn-secondary" onclick="openRequestModal('{{ key }}', this)"
+                data-item='{{ it | tojson | forceescape }}'
+                style="padding: 4px 12px; font-size: 12px; width: auto; background-color: transparent; border-color: var(--border);">View</button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div style="text-align:center; padding: 20px; color:var(--text-secondary)">No approval history for {{ label | lower
+      }}.</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Unified Viewer Modal -->
+<div id="unifiedViewerModal" class="modal">
+  <div class="modal-content"
+    style="max-width: 500px; padding: 32px; border-radius: 12px; background-color: var(--surface-modal); border: 1px solid var(--border); box-shadow: var(--shadow);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+      <h3 id="uvmTitle" style="margin: 0; font-size: 20px; color: var(--text);">Request Details</h3>
+      <button class="close-btn" onclick="closeUnifiedModal()"
+        style="background: transparent; border: none; font-size: 24px; color: var(--text-secondary); cursor: pointer; padding: 0; line-height: 1;">&times;</button>
+    </div>
+
+    <div id="uvmContent" style="display: flex; flex-direction: column; gap: 16px;">
+      <!-- Content populated by JS -->
+    </div>
+
+    <div style="margin-top: 32px; display: flex; justify-content: flex-end;">
+      <button type="button" class="btn btn-secondary" onclick="closeUnifiedModal()"
+        style="width: auto; padding: 8px 24px;">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function switchTab(tabId, el) {
+    // Hide all tab contents
+    document.querySelectorAll('.tab-content').forEach(tc => {
+      tc.classList.add('hidden');
+      tc.classList.remove('active');
+    });
+    // Remove active from all tabs
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+
+    // Show selected
+    const target = document.getElementById('tab-' + tabId);
+    if (target) {
+      target.classList.remove('hidden');
+      target.classList.add('active');
+    }
+    el.classList.add('active');
+  }
+
+  function submitRejectWithReason(form) {
+    const reason = prompt("Please provide a reason for rejection:");
+    if (reason === null) {
+      return false; // User cancelled
+    }
+    form.querySelector('input[name="rejection_reason"]').value = reason;
+    return true;
+  }
+
+  function openRequestModal(reqType, btnElem) {
+    const rawData = btnElem.getAttribute('data-item');
+    let item = {};
+    if (rawData) item = JSON.parse(rawData);
+
+    document.getElementById('uvmTitle').innerText = (reqType.charAt(0).toUpperCase() + reqType.slice(1)) + " Request Details";
+    const contentDiv = document.getElementById('uvmContent');
+    contentDiv.innerHTML = '';
+
+    const addRow = (label, val) => {
+      if (val !== undefined && val !== null && val !== "") {
+        contentDiv.innerHTML += `
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <span style="font-size: 13px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">${label}</span>
+            <div style="font-size: 15px; color: var(--text); padding: 14px 16px; background: var(--surface); border-radius: 8px; border: 1px solid var(--border); min-height: 52px; white-space: pre-wrap; word-break: break-word;">${val}</div>
+          </div>
+        `;
+      }
+    };
+
+    addRow('Employee ID', item.employee_id);
+    addRow('Status', item.status);
+
+    if (reqType === 'leave') {
+      addRow('Type', item.type);
+      addRow('From Date', item.from_date);
+      addRow('To Date', item.to_date);
+      addRow('Days', item.days || '1');
+      addRow('Reason', item.reason);
+    }
+    else if (reqType === 'visa') {
+      addRow('Type', item.type);
+      addRow('Country', item.country);
+      addRow('Reason', item.reason);
+    }
+    else if (reqType === 'flight') {
+      addRow('Type', item.type);
+      addRow('Origin', item.origin);
+      addRow('Destination', item.destination);
+      addRow('Date', item.date);
+      addRow('Reason', item.reason);
+    }
+    else if (reqType === 'cab') {
+      addRow('Date', item.date);
+      addRow('Time', item.time);
+      addRow('Origin', item.origin);
+      addRow('Destination', item.destination);
+      addRow('Reason', item.reason);
+    }
+    else if (reqType === 'insurance') {
+      addRow('Type', item.coverage_type || item.insurance_type);
+      addRow('Dependents', item.dependents);
+      addRow('Reason / Notes', item.notes || item.reason);
+    }
+
+    if (item.rejection_reason) {
+      addRow('Rejection Reason', item.rejection_reason);
+    }
+
+
+    document.getElementById('unifiedViewerModal').classList.add('active');
+  }
+
+  function closeUnifiedModal() {
+    document.getElementById('unifiedViewerModal').classList.remove('active');
+  }
+</script>
+{% endblock %}

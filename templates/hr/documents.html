@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}Documents{% endblock %}
+{% block content %}
+<div class="card" style="padding: 30px;">
+  <div class="card-header" style="margin-bottom: 24px;">
+    <h3 class="card-title">Employee Documents - Approval Queue</h3>
+  </div>
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Employee</th>
+          <th>Document Name</th>
+          <th>Type</th>
+          <th>Upload Date</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if not docs %}
+        <tr>
+          <td colspan="6" style="text-align:center; padding: 20px; color:var(--text-secondary)">No documents available
+          </td>
+        </tr>
+        {% else %}
+        {% for d in docs %}
+        <tr>
+          <td>{{ d.employee_id }}</td>
+          <td>{{ d.name }}</td>
+          <td>{{ d.type }}</td>
+          <td>{{ d.upload_date }}</td>
+          <td><span
+              class="badge {{ 'badge-approved' if d.status=='Approved' else 'badge-pending' if d.status in ['Pending','SupervisorApproved'] else 'badge-rejected' }}">{{
+              d.status }}</span></td>
+          <td style="white-space:nowrap">
+            {% if d.status in ['Pending', 'SupervisorApproved'] %}
+            <form method="post" action="{{ url_for('hr_documents_action', action='approve', doc_id=d._id) }}"
+              style="display:inline-block"><button class="btn btn-primary"
+                style="padding: 4px 12px; font-size: 12px; width: auto; margin-right: 8px;">Approve</button></form>
+            <form method="post" action="{{ url_for('hr_documents_action', action='reject',  doc_id=d._id) }}"
+              style="display:inline-block" onsubmit="return submitRejectWithReason(this)">
+              <input type="hidden" name="rejection_reason" value="">
+              <button class="btn btn-secondary"
+                style="padding: 4px 12px; font-size: 12px; width: auto; margin-right: 8px;">Reject</button>
+            </form>
+            {% endif %}
+            <button type="button" class="btn btn-secondary"
+              onclick="openDocModal('{{ d.employee_id }}', '{{ d.name }}', '{{ d.type }}', '{{ d.file_name }}', '{{ d.upload_date }}', '{{ d.status }}', '{{ d.file_server_path }}')"
+              style="padding: 4px 12px; font-size: 12px; width: auto; background-color: transparent; border-color: var(--border);">View</button>
+            {% if session.get('role') == 'itadmin' %}
+            <form method="post" action="{{ url_for('it_delete_request', req_type='documents', rid=d._id) }}"
+              style="display:inline-block" onsubmit="return confirm('Delete this document entry?')">
+              <button class="btn btn-secondary"
+                style="padding: 4px 12px; font-size: 12px; width: auto; color: var(--danger); border-color: var(--danger); background: transparent; margin-left: 8px;">Delete</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Document Viewer Modal -->
+<div id="docViewerModal" class="modal">
+  <div class="modal-content"
+    style="max-width: 500px; padding: 32px; border-radius: 12px; background-color: var(--surface-modal); border: 1px solid var(--border); box-shadow: var(--shadow);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+      <h3 style="margin: 0; font-size: 20px; color: var(--text);">Document Viewer</h3>
+      <button class="close-btn" onclick="closeDocModal()"
+        style="background: none; border: none; font-size: 24px; color: var(--text-secondary); cursor: pointer; padding: 0; line-height: 1;">&times;</button>
+    </div>
+
+    <div style="padding: 10px 0;">
+      <h4 style="color: var(--primary); margin-top: 0; margin-bottom: 16px; font-size: 16px;">Document Details</h4>
+      <div style="display: grid; gap: 12px; font-size: 14px; margin-bottom: 24px;">
+        <div><strong style="color: var(--text);">Employee:</strong> <span id="m_emp"
+            style="color: var(--text-secondary);"></span></div>
+        <div><strong style="color: var(--text);">Document Name:</strong> <span id="m_name"
+            style="color: var(--text-secondary);"></span></div>
+        <div><strong style="color: var(--text);">Document Type:</strong> <span id="m_type"
+            style="color: var(--text-secondary);"></span></div>
+        <div><strong style="color: var(--text);">File Name:</strong> <span id="m_fname"
+            style="color: var(--text-secondary);"></span></div>
+        <div><strong style="color: var(--text);">Upload Date:</strong> <span id="m_date"
+            style="color: var(--text-secondary);"></span></div>
+        <div>
+          <strong style="color: var(--text);">Status:</strong>
+          <span id="m_status_badge" class="badge"></span>
+        </div>
+      </div>
+
+      <div
+        style="background-color: var(--surface-alt); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+        <div style="font-weight: 600; font-size: 14px; color: var(--text); margin-bottom: 8px;">📁 File Location:</div>
+        <div id="m_path"
+          style="font-family: monospace; font-size: 13px; color: var(--text-secondary); word-break: break-all;"></div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <a id="m_dl_link" href="#" download class="btn btn-secondary"
+          style="display: flex; align-items: center; justify-content: center; text-decoration: none; padding: 10px; font-size: 14px; border-radius: 8px;">
+          <span style="margin-right: 8px;">📥</span> Download
+        </a>
+        <button type="button" class="btn btn-secondary" onclick="closeDocModal()"
+          style="padding: 10px; font-size: 14px; border-radius: 8px; cursor: pointer;">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openDocModal(emp, name, type, fname, date, status, path) {
+    document.getElementById('m_emp').innerText = emp;
+    document.getElementById('m_name').innerText = name;
+    document.getElementById('m_type').innerText = type;
+    document.getElementById('m_fname').innerText = fname || 'N/A';
+    document.getElementById('m_date').innerText = date || 'N/A';
+
+    let badge = document.getElementById('m_status_badge');
+    badge.innerText = status;
+    badge.className = 'badge';
+    if (status === 'Approved') badge.classList.add('badge-approved');
+    else if (status === 'Rejected') badge.classList.add('badge-rejected');
+    else badge.classList.add('badge-pending');
+
+    document.getElementById('m_path').innerText = path;
+    document.getElementById('m_dl_link').href = path; // Mocks download
+    document.getElementById('docViewerModal').classList.add('active');
+  }
+  function closeDocModal() {
+    document.getElementById('docViewerModal').classList.remove('active');
+  }
+
+  function submitRejectWithReason(form) {
+    const reason = prompt("Please provide a reason for rejecting this document:");
+    if (reason === null) return false;
+    if (reason.trim() === "") {
+      alert("A reason is required for rejection.");
+      return false;
+    }
+    form.querySelector('input[name="rejection_reason"]').value = reason;
+    return true;
+  }
+</script>
+{% endblock %}

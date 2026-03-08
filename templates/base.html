@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}HRMS V20{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/hrms.css') }}">
+</head>
+
+<body>
+  {% block header %}
+  <div class="header">
+    <div class="container">
+      <div class="header-content">
+        <h2>HRMS V2 - <span>{% if session.get('role') %}{{ session.get('role').title() }}{% else %}Guest{% endif
+            %}</span></h2>
+        <div class="user-info">
+          {% if session.get('name') %}<span class="user-name">{{ session.get('name') }}</span>{% endif %}
+          {% if session.get('user_id') %}<a class="logout-btn" href="{{ url_for('logout') }}">Logout</a>{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endblock %}
+  <div class="container">
+    {% block before_tabs %}{% endblock %}
+    {% set is_my_requests = request.endpoint and request.endpoint.startswith('employee_') %}
+    {% set is_team_members = request.endpoint in ['it_employees', 'supervisor_my_info', 'hr_directory'] %}
+    {% set is_my_approvals = request.endpoint and ('_approvals' in request.endpoint or request.endpoint in
+    ['hr_documents', 'hr_visas', 'hr_documents_upload_page', 'hr_documents_upload_submit', 'hr_reports',
+    'supervisor_approvals']) %}
+
+    {% if request.endpoint != 'login' and session.get('role') in ['hr', 'supervisor', 'itadmin'] %}
+    <div class="primary-nav">
+      <a href="{{ url_for('employee_my_info') }}" class="primary-nav-link {% if is_my_requests %}active{% endif %}">
+        My Requests
+      </a>
+
+      {% if session.get('role') == 'itadmin' %}
+      <a href="{{ url_for('it_employees') }}" class="primary-nav-link {% if is_team_members %}active{% endif %}">
+        Team Members
+      </a>
+      <a href="{{ url_for('hr_leave_approvals') }}" class="primary-nav-link {% if is_my_approvals %}active{% endif %}">
+        My Approvals {% if pending_counts.total > 0 %}<span class="nav-badge">{{ pending_counts.total }}</span>{% endif
+        %}
+      </a>
+      {% elif session.get('role') == 'hr' %}
+      <a href="{{ url_for('hr_directory') }}" class="primary-nav-link {% if is_team_members %}active{% endif %}">
+        Team Members
+      </a>
+      <a href="{{ url_for('hr_leave_approvals') }}" class="primary-nav-link {% if is_my_approvals %}active{% endif %}">
+        My Approvals {% if pending_counts.total > 0 %}<span class="nav-badge">{{ pending_counts.total }}</span>{% endif
+        %}
+      </a>
+      {% elif session.get('role') == 'supervisor' %}
+      <a href="{{ url_for('supervisor_my_info') }}" class="primary-nav-link {% if is_team_members %}active{% endif %}">
+        Team Members
+      </a>
+      <a href="{{ url_for('supervisor_approvals') }}"
+        class="primary-nav-link {% if is_my_approvals %}active{% endif %}">
+        My Approvals {% if pending_counts.total > 0 %}<span class="nav-badge">{{ pending_counts.total }}</span>{% endif
+        %}
+      </a>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% if request.endpoint != 'login' %}
+    {% if is_my_requests or session.get('role') == 'employee' %}
+    <div style="overflow-x: auto; padding-bottom: 2px; margin-bottom: 24px;">
+      <div class="nav-tabs" style="display: flex; white-space: nowrap; min-width: max-content; margin-bottom: 4px;">
+        <a class="nav-tab {% if request.endpoint == 'employee_my_info' %}active{% endif %}"
+          href="{{ url_for('employee_my_info') }}">My Information</a>
+        <a class="nav-tab {% if request.endpoint == 'employee_documents' %}active{% endif %}"
+          href="{{ url_for('employee_documents') }}">Documents</a>
+        <a class="nav-tab {% if request.endpoint == 'employee_leave_list' %}active{% endif %}"
+          href="{{ url_for('employee_leave_list') }}">Leave Requests</a>
+        <a class="nav-tab {% if request.endpoint == 'employee_visa_list' %}active{% endif %}"
+          href="{{ url_for('employee_visa_list') }}">Visa & Permits</a>
+        <a class="nav-tab {% if request.endpoint == 'employee_insurance_list' %}active{% endif %}"
+          href="{{ url_for('employee_insurance_list') }}">Medical Insurance</a>
+        <a class="nav-tab {% if request.endpoint == 'employee_flight_list' %}active{% endif %}"
+          href="{{ url_for('employee_flight_list') }}">Flight Requests</a>
+        <a class="nav-tab {% if request.endpoint == 'employee_cab_list' %}active{% endif %}"
+          href="{{ url_for('employee_cab_list') }}">Cab Requests</a>
+      </div>
+    </div>
+    {% elif is_my_approvals and session.get('role') in ['hr', 'itadmin'] %}
+    <div style="overflow-x: auto; padding-bottom: 2px; margin-bottom: 24px;">
+      <div class="nav-tabs" style="display: flex; white-space: nowrap; min-width: max-content; margin-bottom: 4px;">
+        <a class="nav-tab {% if request.endpoint in ['hr_documents_upload_page', 'hr_documents_upload_submit'] %}active{% endif %}"
+          href="{{ url_for('hr_documents_upload_page') }}">Upload Documents</a>
+        <a class="nav-tab {% if request.endpoint == 'hr_documents' %}active{% endif %}"
+          href="{{ url_for('hr_documents') }}">Documents Approval {% if pending_counts.categories.documents > 0 %}({{
+          pending_counts.categories.documents }}){% endif %}</a>
+        <a class="nav-tab {% if request.endpoint == 'hr_leave_approvals' %}active{% endif %}"
+          href="{{ url_for('hr_leave_approvals') }}">Leave Approvals {% if pending_counts.categories.leave > 0 %}({{
+          pending_counts.categories.leave }}){% endif %}</a>
+        <a class="nav-tab {% if request.endpoint == 'hr_visa_approvals' %}active{% endif %}"
+          href="{{ url_for('hr_visa_approvals') }}">Visa Approvals {% if pending_counts.categories.visa > 0 %}({{
+          pending_counts.categories.visa }}){% endif %}</a>
+        <a class="nav-tab {% if request.endpoint == 'hr_visas' %}active{% endif %}"
+          href="{{ url_for('hr_visas') }}">Visa Management</a>
+        <a class="nav-tab {% if request.endpoint == 'hr_flight_approvals' %}active{% endif %}"
+          href="{{ url_for('hr_flight_approvals') }}">Flight Approvals {% if pending_counts.categories.flight > 0 %}({{
+          pending_counts.categories.flight }}){% endif %}</a>
+        <a class="nav-tab {% if request.endpoint == 'hr_insurance_approvals' %}active{% endif %}"
+          href="{{ url_for('hr_insurance_approvals') }}">Insurance Approvals {% if pending_counts.categories.insurance >
+          0 %}({{ pending_counts.categories.insurance }}){% endif %}</a>
+        <a class="nav-tab {% if request.endpoint == 'hr_cab_approvals' %}active{% endif %}"
+          href="{{ url_for('hr_cab_approvals') }}">Cab Approvals {% if pending_counts.categories.cab > 0 %}({{
+          pending_counts.categories.cab }}){% endif %}</a>
+        <a class="nav-tab {% if request.endpoint == 'hr_reports' %}active{% endif %}"
+          href="{{ url_for('hr_reports') }}">Reports & Export</a>
+        {% if session.get('role') == 'itadmin' %}
+        <a class="nav-tab {% if request.endpoint == 'it_employees' %}active{% endif %}"
+          href="{{ url_for('it_employees') }}"
+          style="color: #61afef; border-bottom-color: #61afef; font-weight: bold;">IT Admin Control Panel</a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+    {% endif %}
+    {% if request.endpoint != 'login' %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for cat,msg in messages %}
+    <div class="alert alert-{{ 'danger' if cat=='error' or cat=='danger' else cat }}">{{ msg }}</div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+    {% endif %}
+    {% block content %}{% endblock %}
+  </div>
+</body>
+
+</html>

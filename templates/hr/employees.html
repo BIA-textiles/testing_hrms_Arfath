@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Employee Management{% endblock %}
+{% block before_tabs %}
+<div class="stats-grid" style="margin-bottom: 24px;">
+  <div class="card stat-card-blue">
+    <h4>Total Employees</h4>
+    <div class="stat-value">{{ stats.total_employees }}</div>
+  </div>
+  <div class="card stat-card-blue">
+    <h4>Pending HR Approvals</h4>
+    <div class="stat-value">{{ stats.pending_hr }}</div>
+  </div>
+  <div class="card stat-card-blue">
+    <h4>Documents Pending</h4>
+    <div class="stat-value">{{ stats.pending_docs }}</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="padding: 30px;">
+  <div class="card-header"
+    style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center;">
+    <h3 class="card-title">Employee Management</h3>
+    {% if session.get('role') == 'hr' %}
+    <button class="btn btn-primary" onclick="document.getElementById('createEmployeeModal').style.display='flex'"
+      style="width: auto; padding: 8px 16px;">Create New Employee</button>
+    {% endif %}
+  </div>
+
+  <div style="display: flex; gap: 16px; margin-bottom: 24px;">
+    <input type="text" placeholder="Search by name..."
+      style="flex: 1; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--text);">
+    <input type="text" placeholder="Search by Emp ID..."
+      style="flex: 1; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--text);">
+    <button class="btn btn-secondary"
+      style="padding: 10px 24px; width: auto; background-color: transparent; border-color: var(--border);">Clear</button>
+  </div>
+
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Photo</th>
+          <th>Emp ID</th>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Department</th>
+          <th>Designation</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td>
+            <div
+              style="width: 32px; height: 32px; border-radius: 50%; background-color: #3b82f6; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px;">
+              {{ (u.name or u.email or 'U')[:1]|upper }}
+            </div>
+          </td>
+          <td>{{ u.id }}</td>
+          <td>{{ u.name }}</td>
+          <td>{{ u.email or 'N/A' }}</td>
+          <td>{{ u.department or 'N/A' }}</td>
+          <td>{{ u.designation or 'N/A' }}</td>
+          <td><span class="badge badge-approved" style="padding: 4px 12px; font-weight: 500;">Active</span></td>
+          <td style="white-space:nowrap">
+            <button class="btn btn-secondary"
+              style="padding: 4px 12px; font-size: 12px; width: auto; margin-right: 8px; background-color: transparent; border-color: var(--border);">Edit</button>
+            <button class="btn btn-secondary"
+              style="padding: 4px 12px; font-size: 12px; width: auto; background-color: transparent; border-color: var(--border);">Docs</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if session.get('role') == 'hr' %}
+<div id="createEmployeeModal" class="modal">
+  <div class="modal-content" style="max-width: 600px;">
+    <div class="modal-header">
+      <h3 class="modal-title">Create New Employee</h3>
+      <button type="button" class="close-btn"
+        onclick="document.getElementById('createEmployeeModal').style.display='none'">&times;</button>
+    </div>
+    <form method="post" action="{{ url_for('hr_create_employee') }}" class="info-grid"
+      style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); margin-top: 16px;">
+      <div class="form-group"><label>Employee ID</label><input name="id" required></div>
+      <div class="form-group"><label>Name</label><input name="name" required></div>
+      <div class="form-group"><label>Email</label><input name="email" type="email"></div>
+      <div class="form-group"><label>Role</label><select name="role" required>
+          <option value="employee">Employee</option>
+          <option value="supervisor">Supervisor</option>
+          <option value="hr">HR Admin</option>
+          <option value="itadmin">IT Admin</option>
+        </select></div>
+      <div class="form-group"><label>Department</label><input name="department"></div>
+      <div class="form-group"><label>Designation</label><input name="designation"></div>
+      <div class="form-group"><label>Supervisor ID</label><input name="supervisor" placeholder="e.g., super001"></div>
+      <div class="form-group"><label>Leave Balance</label><input type="number" name="leave_balance" value="15" min="0">
+      </div>
+      <button class="btn btn-primary" type="submit"
+        style="width: auto; padding: 8px 16px; align-self: end; height: 38px;">Create</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

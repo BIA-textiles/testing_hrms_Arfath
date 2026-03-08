@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Employee Lookup{% endblock %}
+{% block content %}
+<div class="card" style="padding: 30px;">
+    <div class="card-header" style="margin-bottom: 24px;">
+        <h3 class="card-title">All Employees</h3>
+    </div>
+
+    <div style="margin-bottom: 24px;">
+        <input type="text" id="dirSearch" placeholder="Search by name, ID, or department..." onkeyup="filterDirectory()"
+            style="width: 100%; padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--text);">
+    </div>
+
+    <div class="table-container">
+        <table id="dirTable">
+            <thead>
+                <tr>
+                    <th>Emp ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Department</th>
+                    <th>Designation</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if not users %}
+                <tr id="noDirRecords">
+                    <td colspan="6" style="text-align:center; padding: 20px; color:var(--text-secondary)">No employees
+                        found in directory.</td>
+                </tr>
+                {% else %}
+                <tr id="noDirRecords" style="display: none;">
+                    <td colspan="6" style="text-align:center; padding: 20px; color:var(--text-secondary)">No employees
+                        found.</td>
+                </tr>
+                {% for u in users %}
+                <tr class="dir-row">
+                    <td class="col-id">{{ u.id }}</td>
+                    <td class="col-name">{{ u.name }}</td>
+                    <td>{{ u.email }}</td>
+                    <td class="col-dept">{{ u.department }}</td>
+                    <td>{{ u.designation }}</td>
+                    <td>
+                        <a href="{{ url_for('view_employee_requests', emp_id=u.id) }}" class="btn btn-secondary"
+                            style="padding: 6px 12px; font-size: 13px; text-decoration: none; display: inline-block;">View
+                            Requests</a>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    function filterDirectory() {
+        const searchVal = document.getElementById('dirSearch').value.toLowerCase();
+        const rows = document.querySelectorAll('.dir-row');
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const idVal = row.querySelector('.col-id').innerText.toLowerCase();
+            const nameVal = row.querySelector('.col-name').innerText.toLowerCase();
+            const deptVal = row.querySelector('.col-dept').innerText.toLowerCase();
+
+            if (idVal.includes(searchVal) || nameVal.includes(searchVal) || deptVal.includes(searchVal)) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        const noRecordsRow = document.getElementById('noDirRecords');
+        if (noRecordsRow) {
+            noRecordsRow.style.display = visibleCount === 0 ? '' : 'none';
+        }
+    }
+</script>
+{% endblock %}

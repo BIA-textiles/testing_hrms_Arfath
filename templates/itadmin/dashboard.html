@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}IT Admin Control Panel{% endblock %}
+
+{% block content %}
+<div class="card" style="padding: 30px;">
+    <div class="card-header" style="margin-bottom: 24px;">
+        <h3 class="card-title" style="color: #61afef;">Database Management & Raw Export</h3>
+        <p style="color: var(--text-secondary); margin-top: 8px; font-size: 14px;">Securely download absolute raw data
+            payloads from any MongoDB collection.</p>
+    </div>
+
+    <div class="stats-grid" style="margin-bottom: 32px;">
+        {% for stat in stats %}
+        <div class="card stat-card-blue" style="border-top: 3px solid #61afef;">
+            <h4 style="text-transform: capitalize;">{{ stat.name | replace('_', ' ') }}</h4>
+            <div class="stat-value" style="color: #61afef;">{{ stat.count }}</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>MongoDB Collection Name</th>
+                    <th>Total Records</th>
+                    <th>Export Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stat in stats %}
+                <tr>
+                    <td style="font-family: monospace; color: #e5c07b;">{{ stat.name }}</td>
+                    <td><span class="badge badge-approved"
+                            style="background-color: rgba(97, 175, 239, 0.1); color: #61afef; border-color: rgba(97, 175, 239, 0.2);">{{
+                            stat.count }} Documents</span></td>
+                    <td style="white-space:nowrap">
+                        <a href="{{ url_for('itadmin_export', collection=stat.name, fmt='csv') }}"
+                            class="btn btn-secondary"
+                            style="padding: 6px 14px; font-size: 12px; width: auto; background-color: transparent; border-color: var(--border); color: #98c379; margin-right: 8px;">
+                            Download CSV
+                        </a>
+                        <a href="{{ url_for('itadmin_export', collection=stat.name, fmt='json') }}"
+                            class="btn btn-secondary"
+                            style="padding: 6px 14px; font-size: 12px; width: auto; background-color: transparent; border-color: var(--border); color: #e5c07b;">
+                            Download JSON
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Leave Requests - HRMS V20{% endblock %}
+
+{% block before_tabs %}
+<div class="stats-grid" style="margin-bottom: 24px;">
+  <div class="stat-card-blue">
+    <div class="stat-label">Pending Requests</div>
+    <div class="stat-value">{{ stats.pending_requests }}</div>
+  </div>
+  <div class="stat-card-blue">
+    <div class="stat-label">Leave Balance</div>
+    <div class="stat-value">{{ user.leave_balance }}</div>
+  </div>
+  <div class="stat-card-blue">
+    <div class="stat-label">My Documents</div>
+    <div class="stat-value">{{ stats.docs_count }}</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="padding: 30px;">
+  <div class="card-header">
+    <h3 class="card-title">Leave Requests</h3>
+    <button class="btn btn-primary" onclick="openRequestModal()"
+      style="width: auto; padding: 8px 16px; font-size: 13px;">New Request</button>
+  </div>
+
+  <div class="table-container" style="margin-top: 16px;">
+    <table>
+      <thead>
+        <tr>
+          <th>Leave Type</th>
+          <th>From Date</th>
+          <th>To Date</th>
+          <th>Days</th>
+          <th>Status</th>
+          <th style="width: 25%;">Remarks/Reason</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if not items %}
+        <tr>
+          <td colspan="6" style="text-align:center; padding: 20px; color:var(--text-secondary)">No leave requests</td>
+        </tr>
+        {% else %}
+        {% for it in items %}
+        <tr>
+          <td>{{ it.type }}</td>
+          <td>{{ it.from_date }}</td>
+          <td>{{ it.to_date }}</td>
+          <td>{{ it.days or 1 }}</td>
+          <td><span
+              class="badge {{ 'badge-approved' if it.status=='Approved' else 'badge-pending' if it.status in ['Pending','SupervisorApproved'] else 'badge-rejected' }}">{{
+              it.status }}</span></td>
+          <td>
+            <span style="font-size: 13px; color: var(--text-secondary);">{{ it.reason or '-' }}</span>
+            {% if it.status == "Rejected" and it.rejection_reason %}
+            <div style="margin-top: 4px; font-size: 12px; color: var(--danger); font-weight: 500;">
+              Rejected: {{ it.rejection_reason }}
+            </div>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Request Modal -->
+<div id="requestModal" class="modal">
+  <div class="modal-content" style="max-width: 500px;">
+    <div class="modal-header">
+      <h3 class="modal-title">New Leave Request</h3>
+      <button class="close-btn" onclick="closeRequestModal()">&times;</button>
+    </div>
+    <form method="post" action="{{ url_for('employee_leave_new') }}" class="info-grid"
+      style="grid-template-columns: 1fr; margin-bottom: 0;">
+      <div class="form-group"><label>Type</label><select name="type" required>
+          <option>Annual</option>
+          <option>Sick</option>
+          <option>Emergency</option>
+          <option>Unpaid</option>
+        </select></div>
+      <div class="form-group"><label>From</label><input type="date" name="from_date" required></div>
+      <div class="form-group"><label>To</label><input type="date" name="to_date" required></div>
+      <div class="form-group"><label>Days</label><input type="number" name="days" min="1" value="1" required></div>
+      <div class="form-group"><label>Reason</label><textarea name="reason" required></textarea></div>
+      <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 10px;">
+        <button type="button" class="btn-secondary" onclick="closeRequestModal()"
+          style="width: auto; padding: 8px 16px;">Cancel</button>
+        <button type="submit" style="width: auto; padding: 8px 16px;">Submit</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function openRequestModal() {
+    document.getElementById('requestModal').classList.add('active');
+  }
+
+  function closeRequestModal() {
+    document.getElementById('requestModal').classList.remove('active');
+  }
+</script>
+{% endblock %}
